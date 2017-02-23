@@ -168,3 +168,13 @@ div {
     background-color: #fcf8e3;
     border-color: #faebcc;
 }
+
+.log {
+    overflow: auto;
+}
+
+.log-entry {
+    padding-bottom: 5px;
+    padding-left: 10px;
+    border-left: 4px #3c763d solid;
+}

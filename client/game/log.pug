@@ -1,10 +1,23 @@
 div(ng-repeat="entry in vm.log" class="log-entry")
   div(ng-switch="entry.type")
     span(ng-switch-when="game.joined")
-      | User 
-      strong {{entry.data.player.name}} 
+      | Player &nbsp;
+      strong {{entry.data.name}} &nbsp; 
       | has joined to the game
     span(ng-switch-when="game.left")
-      | User 
-      strong {{entry.data.player.name}} 
+      | Player &nbsp;
+      strong {{entry.data.name}} &nbsp;
       | has left the game
+    span(ng-switch-when="game.played")
+      | Player &nbsp;
+      strong {{entry.data.player.name}} &nbsp; 
+      | has has thrown &nbsp;
+      strong {{entry.data.value}} 
+    span(ng-switch-when="game.end")
+      | Game End: Winners &nbsp;
+      strong(ng-repeat="winner in entry.data.winners")
+        | {{winner.name}}
+    span(ng-switch-when="game.started")
+      | Game started
+
+      

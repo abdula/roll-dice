@@ -2,13 +2,14 @@ div.game
   div.game-result.game-section
     .panel
       .panel-body
-        div(ng-show="vm.canIPlay.code > 0")
+        div(ng-show="vm.canIPlay === true")
           dice#dice(dice-value="vm.activeValue", dice-size="big", dice-enabled="true", ng-click="vm.play()")
         div(ng-show="vm.canIPlay.code < 0 ")  
-          div.alert.alert-warning {{vm.canIPlay.description}} 
+          div.alert.alert-warning {{vm.canIPlay.description}} {{vm.canIPlay.code}}  
         .game-played
           div.game-played-entry(ng-repeat="result in vm.game.results")
             dice(dice-value="result.value", dice-size="small")
+            span {{result.player.name}}
             hr
 
   div.game-players.game-section

@@ -11,6 +11,7 @@ class Game extends EventEmitter {
   constructor(room) {
     super();
 
+    this.minPlayers = 1;
     this.room = room;
     this.players = [];
     this.playing = false;
@@ -18,29 +19,29 @@ class Game extends EventEmitter {
     this.nextRoundPlayers = [];
   }
 
-  addPlayer(socket) {
-    this.players.push(socket);
+  addPlayer(player) {
+    this.players.push(player);
     if (this.playing) {
-      this.nextRoundPlayers.push(socket);
+      this.nextRoundPlayers.push(player);
     }
-    this.emit('joined', socket);
+    this.emit('joined', player);
   }
 
-  removePlayer(socket) {
-    const index = this.players.indexOf(socket);
+  removePlayer(player) {
+    const index = this.players.indexOf(player);
     if (index === -1) {
       return false;
     }
 
     this.players.splice(index, 1);
-    this.nextRoundPlayers.splice(this.nextRoundPlayers.indexOf(socket), 1);
+    this.nextRoundPlayers.splice(this.nextRoundPlayers.indexOf(player), 1);
 
-    this.emit('left', socket);
+    this.emit('left', player);
   }
 
-  getPlayerResult(socket) {
+  getPlayerResult(player) {
     for (let i = 0; i < this.results.length; i++) {
-      if (this.results[i].socket === socket) {
+      if (this.results[i].player === player) {
         return this.results[i];
       }
     }
@@ -48,68 +49,82 @@ class Game extends EventEmitter {
   }
 
   getWinners() {
-    const winners = [];
+    let winners = [];
 
     this.results.reduce((prev, item) => {
       if (prev < item.value) {
-        winners = [item.socket];
+        winners = [item.player];
         return item.value;
       }
 
       if (prev === item.value) {
-        winners.push(item.socket);
+        winners.push(item.player);
       }
 
       return prev;
     }, 0);
+    return winners;
   }
 
   getLoosers() {
     const winners = this.getWinners();
-    this.results.reduce((prev, item) => {
-      if (winners.indexOf(item.socket) === -1) {
-        prev.push(item.socket);
+    return this.results.reduce((prev, item) => {
+      if (winners.indexOf(item.player) === -1) {
+        prev.push(item.player);
       }
       return prev;
     }, []);
   }
 
-  play(socket) {
+  play(player) {
     const numPlayers = this.players.length - this.nextRoundPlayers.length;
 
-    if (numPlayers < 2) {
-      throw new Error('Must be at least 2 players');
+    if (numPlayers < this.minPlayers) {
+      throw new Error(`Must be at least ${this.minPlayers} players`);
     }
 
-    if (this.players.indexOf(socket) === -1) {
+    if (this.players.indexOf(player) === -1) {
       throw new Error('You can\'t play in this game');
     }
 
-    if (this.nextRoundPlayers.indexOf(socket) === -1) {
-      throw new Error('You can\'t play in next round. Please wait');
+    if (this.nextRoundPlayers.indexOf(player) !== -1) {
+      throw new Error('You will able to play in next round. Please wait.');
     }
 
-    if (this.getPlayerResult(socket) !== false) {
+    if (this.getPlayerResult(player) !== false) {
       throw new Error('You can\'t replay');
     }
+
+    const result = {
+      player: player,
+      value: randomInt(1, 6)
+    };
+
+    this.results.push(result);
 
     if (!this.playing) {
       this.playing = true;
       this.emit('start');
     }
 
-    this.results.push({
-      socket: socket,
-      result: randomInt(1, 6)
+    process.nextTick(() => {
+      this.emit('played', result);
+
+      if (!this.getLeftToPlay()) {
+        this.emit('end');
+      }
     });
 
-    if (this.results.length === this.players.length - this.nextRoundPlayers.length) {
-      this.emit('end', {
-        result: this.result.slice(0),
-        winners: this.getWinners(),
-        loosers: this.getLoosers()
-      });
-    }
+
+    return result;
+  }
+
+  getLeftToPlay() {
+    return (this.players.length - this.nextRoundPlayers.length) - this.results.length;
+  }
+
+  getResults() {
+    return this.results;
   }
 
   getPlayers() {
@@ -124,10 +139,22 @@ class Game extends EventEmitter {
     this.playing = false;
     this.results = [];
     this.nextRoundPlayers = [];
+    this.emit('reset');
   }
 
   hasPlayers() {
     return this.players.length;
+  }
+
+  resultToObj(result) {
+    return {
+      player: this.playerToObj(result.player),
+      value: result.value,
+    };
+  }
+
+  playerToObj(player) {
+    return { id: player.id, name: player.playerName };
   }
 
   getInfo() {
@@ -138,12 +165,16 @@ class Game extends EventEmitter {
         obj.active = this.nextRoundPlayers.indexOf(player) === -1;
         return obj;
       }),
-      results: this.results
+      results: this.results.map(item => this.resultToObj(item))
     };
   }
 
-  playerToObj(player) {
-    return { id: player.id, name: player.playerName };
+  getEndResult() {
+    return {
+      results: this.getResults().map(item => this.resultToObj(item)),
+      winners: this.getWinners().map(item => this.playerToObj(item)),
+      loosers: this.getLoosers().map(item => this.playerToObj(item))
+    };
   }
 }
 
@@ -177,7 +208,7 @@ class Games {
       socket.playerName = Moniker.choose();
     }
 
-    const onGameJoin = (room, cb) => {
+    const onJoin = (room, cb) => {
       if (socket.room) {
         socket.leave(socket.room);
         this.get(socket.room).removePlayer(socket);
@@ -195,10 +226,13 @@ class Games {
     const onPlay = (cb) => {
       if (!socket.room) return;
 
+      const game = this.get(socket.room);
       try {
-        cb({ result: this.get(socket.room).play(socket) });
+        const result = game.play(socket);
+        cb({ value: result.value });
       } catch (e) {
-        cb({ error: e });
+        cb({ error: { message: e.message } });
+        return;
       }
     };
 
@@ -208,7 +242,7 @@ class Games {
       }
     };
 
-    socket.on('game.join', onGameJoin);
+    socket.on('game.join', onJoin);
     socket.on('game.play', onPlay);
     socket.on('disconnect', onDiconnect);
   }
@@ -231,12 +265,18 @@ class Games {
   _create(room) {
     const game = new Game(room);
 
+    debug('create', room);
+
     game.on('joined', socket => {
+      debug('joined', socket.id, game.room);
+
       this.io.in(room).emit('game.joined', game.playerToObj(socket));
       this.sendGameInfo(room);
     });
 
     game.on('left', socket => {
+      debug('left', socket.id, game.room);
+
       this.io.in(socket.room).emit('game.left', game.playerToObj(socket));
 
       if (!game.hasPlayers()) {
@@ -246,19 +286,41 @@ class Games {
       }
     });
 
-    game.on('end', function() {
-      this.io.in(game.room).emit('game.end', {});
+    game.on('end', () => {
+      debug('end', game.room);
+      game.getWinners().forEach((socket) => {
+        socket.emit('game.won');
+      });
+
+      game.getLoosers().forEach((socket) => {
+        socket.emit('game.loose');
+      });
+      this.io.in(game.room).emit('game.end', game.getEndResult());
       game.reset();
     });
 
-    game.on('play', function(obj) {
-      obj.socket.emit('result', obj.result);
+    game.on('reset', () => {
+      this.sendGameInfo(game.room);
+    });
+
+    game.on('played', (result) => {
+      debug('played', result.value, game.room);
+      debug('left play', game.getLeftToPlay());
+
+      const data = {
+        player: game.playerToObj(result.player),
+        value: result.value
+      };
+      this.io.in(game.room).emit('game.played', data);
+
+      this.sendGameInfo(game.room);
     });
 
     return game;
   }
 
   _destroyGame(room) {
+    debug('destroy', room);
     if (this.games[room]) {
       this.games[room].removeAllListeners();
       delete this.games[room];

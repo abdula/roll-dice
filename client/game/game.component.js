@@ -4,11 +4,12 @@ function randomInt(min, max) {
 
 export class GameController {
 
-  constructor(socket, SweetAlert, $timeout, $interval) {
+  constructor(socket, SweetAlert, $timeout, $interval, $log) {
     'ngInject';
 
     this.$timeout = $timeout;
     this.$interval = $interval;
+    this.$log = $log;
     this.SweetAlert = SweetAlert;
 
     this.socket = socket;
@@ -26,12 +27,19 @@ export class GameController {
     this.activeValue = randomInt(this.minDice, this.maxDice);
 
     this.game = {
-      status: 'wait',
-      results: []
+      playing: false,
+      results: [],
+      players: []
     };
   }
 
-  haveIWait() {
+  getMe() {
+    for (let i = 0, l = this.players.length; i < l; i++) {
+      const player = this.players[i];
+      if (player.id === this.socketId) {
+        return player;
+      }
+    }
     return false;
   }
 
@@ -46,25 +54,23 @@ export class GameController {
     if (this.lastValue) {
       return {
         code: -101,
-        description: 'You have to wait wile the game is finished'
+        description: 'Please wait wile the round completed'
       };
     }
 
-    if (this.haveIWait()) {
+    const me = this.getMe();
+    if (!me || !me.active) {
       return {
         code: -102,
-        description: 'You have to wait wile the game is finished'
+        description: 'Please wait wile the round completed'
       };
     }
 
-    return {
-      code: 100,
-      description: 'Click to play'
-    };
+    return true;
   }
 
   writeToLog(data, type) {
-    this.log.push({
+    this.log.unshift({
       type,
       data
     });
@@ -82,24 +88,36 @@ export class GameController {
         if (!result.error) {
           this.activeValue = result.value;
           this.lastValue = this.activeValue;
+        } else {
+          this.$log.error(result.error);
         }
       });
-    }, 3000);
+    }, 1000);
   }
 
   $onInit() {
     this.socket.on('game.info', (game) => {
       this.players = game.players;
-      this.game = {
-        status: game.status,
-        results: game.results
-      };
+      this.game = game;
     });
 
-    ['game.end', 'game.won', 'game.end', 'game.loose', 'game.played', 'game.left', 'game.joined'].forEach((event) => {
+    ['game.end', 'game.played', 'game.left', 'game.joined'].forEach((event) => {
       this.socket.on(event, (result) => {
+        this.$log.debug(event, result);
         this.writeToLog(result, event);
       });
+    });
+
+    this.socket.on('game.end', () => {
+      this.lastValue = null;
+    });
+
+    this.socket.on('game.won', () => {
+      this.SweetAlert.swal('Congrats!', 'You are the winners!', 'success');
+    });
+
+    this.socket.on('game.loose', () => {
+      this.SweetAlert.swal('You loose this time.');
     });
 
     this.socket.emit('game.join', this.room, (result) => {
@@ -123,4 +141,4 @@ export default {
   controller: GameController,
   controllerAs: 'vm',
   template: require('./game.pug'),
-}
+};
