@@ -1,9 +1,8 @@
 'use strict';
 
-var path = require('path');
-var webpack = require('webpack');
-var HtmlWebpackPlugin = require('html-webpack-plugin');
-var ExtractTextPlugin = require('extract-text-webpack-plugin');
+const path = require('path');
+const webpack = require('webpack');
+const HtmlWebpackPlugin = require('html-webpack-plugin');
 
 module.exports = {
   devtool: 'eval-source-map',
@@ -34,23 +33,16 @@ module.exports = {
       test: /\.jsx?$/,
       exclude: /node_modules/,
       loaders: ['ng-annotate', 'babel?presets[]=es2015&presets[]=stage-0'],
-      // query: {
-      //   "presets": ["es2015", "stage-0"]
-      // }
     }, {
       test: /\.json?$/,
       loader: 'json'
     }, {
       test: /\.css$/,
-      // loader: 'style!css?modules&localIdentName=[name]---[local]---[hash:base64:5]'
-      loader: "style-loader!css-loader"
+      loader: 'style-loader!css-loader'
     }, {
       test: /\.(jade|pug)$/,
       // pass options to pug as a query ('pug-html-loader?pretty')
       loader: 'pug-html-loader'
     }],
-  },
-  // plugins: [
-  //   new ExtractTextPlugin("[name].css")
-  // ]
+  }
 };
