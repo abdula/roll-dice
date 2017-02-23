@@ -11,7 +11,7 @@ class Game extends EventEmitter {
   constructor(room) {
     super();
 
-    this.minPlayers = 1;
+    this.minPlayers = 2;
     this.room = room;
     this.players = [];
     this.playing = false;

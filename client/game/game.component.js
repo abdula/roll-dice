@@ -19,7 +19,7 @@ export class GameController {
     this.lastValue = null;
     this.socketId = null;
 
-    this.minPlayers = 1;
+    this.minPlayers = 2;
 
     this.maxDice = 6;
     this.minDice = 1;

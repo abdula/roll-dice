@@ -6,7 +6,7 @@ const isDeveloping = process.env.NODE_ENV !== 'production';
 const socketio = require('socket.io');
 const port = isDeveloping ? 3000 : process.env.PORT;
 const app = express();
-const errorHandler = require('errorhandler')
+const errorHandler = require('errorhandler');
 const register = require('./lib/register');
 const rollDice = require('./lib/roll-dice');
 
@@ -40,7 +40,7 @@ function initWebpack() {
 require('./routes')(app);
 
 if (process.env.NODE_ENV === 'development') {
-  app.use(errorhandler())
+  app.use(errorHandler());
 }
 
 if (isDeveloping) {
@@ -53,7 +53,7 @@ if (isDeveloping) {
 }
 
 
-server = app.listen(port, '0.0.0.0', function onStart(err) {
+const server = app.listen(port, '0.0.0.0', function onStart(err) {
   if (err) {
     console.log(err);
   }
