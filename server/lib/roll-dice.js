@@ -1,30 +1,75 @@
 const uuid = require('uuid');
 const EventEmitter = require('events').EventEmitter;
 const debug = require('debug')('game');
+const Moniker = require('moniker');
+
+function randomInt(min, max) {
+  return Math.floor(Math.random() * (max - min + 1)) + min;
+}
 
 //https://github.com/michaeldegroot/roomdata/blob/master/roomdata.js
 
-function Games(io) {
-  this.io = io;
+class Games {
+  constructor(io) {
+    this.io = io;
+    this.games = {};
+    this._listenIO(io);
+  }
 
-  let games = {};
+  _listenIO(io) {
+    const onConnect = this.onConnect.bind(this);
+    io.sockets.on('connection', onConnect);
+  }
 
-  this.generateRoom = function() {
+  sendGameInfo(room) {
+    if (this.has(room)) {
+      this.io.in(room).emit('game.info', this.get(room).getInfo());
+    }
+  }
+
+  onConnect(socket) {
+    socket.playerName = Moniker.choose();
+
+    let onRoom = (room) => {
+      if (socket.room) {
+        this.io.in(socket.room).emit('players.left', { name: socket.playerName });
+        socket.leave(socket.room);
+      }
+
+      if (room) {
+        socket.room = room;
+        socket.join(room);
+
+        this.io.in(room).emit('players.joined', room);
+      }
+      this.sendGameInfo();
+    }
+
+    socket.on('play', function(socket) {});
+    socket.on('room', onRoom);
+    socket.on('disconnect', this.onDisconnect);
+  }
+
+  onDisconnect(socket) {
+    debug('disconnect');
+  }
+
+  generateRoom() {
     return uuid.v4();
   }
 
-  this.has = function(room) {
-    return games.hasOwnProperty(room);
+  has(room) {
+    return this.games.hasOwnProperty(room);
   }
 
-  this.get = function(room) {
+  get(room) {
     if (!games[room]) {
-      games[room] = this._create(room, this.io);
+      games[room] = this._create(room);
     }
     return games[room];
   }
 
-  this._create = function(room) {
+  _create(room) {
     const game = new Game(room, io);
 
     game.on('disconnect', function() {
@@ -34,16 +79,16 @@ function Games(io) {
     });
   }
 
-  this._destroyGame = function(room) {
+  _destroyGame(room) {
     delete games[room];
   }
 }
 
 class Game extends EventEmitter {
-  constructor(room, io) {
-    this.room = room;
-    this.io = io;
+  constructor(room) {
     this.players = [];
+    this.status = 'wait';
+    this.results = [];
   }
 
   addPlayer(socket) {
@@ -58,19 +103,31 @@ class Game extends EventEmitter {
     return this.players;
   }
 
+  setStatus(status) {
+    this.status = status;
+  }
+
+  reset() {
+    this.results = [];
+  }
+
+  start() {
+
+  }
+
   getNumPlayers() {
     return this.players.length;
   }
 
-
-  // this.playerThrow = function() {
-
-  // }
-
-  // this.getNumPlayers = function() {
-
-  //   }
-  //this.emit('close')
+  getInfo() {
+    return {
+      status: this.status,
+      players: this.players.map((item) => {
+        return item.playerName
+      }),
+      results: this.results
+    }
+  }
 }
 
 exports.Games = Games;

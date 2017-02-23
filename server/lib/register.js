@@ -1,1 +1,1 @@
-module.exports = new WeakMap();
+module.exports = new Map();

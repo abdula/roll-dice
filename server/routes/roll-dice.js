@@ -2,7 +2,6 @@
 
 const express = require('express');
 const router = express.Router();
-const games = require('../roll-dice').Games;
 const register = require('../lib/register');
 
 router.post('/', function(req, res, next) {
@@ -10,3 +9,5 @@ router.post('/', function(req, res, next) {
     room: register.get('rollDice').generateRoom()
   });
 });
+
+module.exports = router;
