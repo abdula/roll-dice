@@ -7,85 +7,11 @@ function randomInt(min, max) {
   return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
-//https://github.com/michaeldegroot/roomdata/blob/master/roomdata.js
-
-class Games {
-  constructor(io) {
-    this.io = io;
-    this.games = {};
-    this._listenIO(io);
-  }
-
-  _listenIO(io) {
-    const onConnect = this.onConnect.bind(this);
-    io.sockets.on('connection', onConnect);
-  }
-
-  sendGameInfo(room) {
-    if (this.has(room)) {
-      this.io.in(room).emit('game.info', this.get(room).getInfo());
-    }
-  }
-
-  onConnect(socket) {
-    socket.playerName = Moniker.choose();
-
-    let onRoom = (room) => {
-      if (socket.room) {
-        this.io.in(socket.room).emit('players.left', { name: socket.playerName });
-        socket.leave(socket.room);
-      }
-
-      if (room) {
-        socket.room = room;
-        socket.join(room);
-
-        this.io.in(room).emit('players.joined', room);
-      }
-      this.sendGameInfo();
-    }
-
-    socket.on('play', function(socket) {});
-    socket.on('room', onRoom);
-    socket.on('disconnect', this.onDisconnect);
-  }
-
-  onDisconnect(socket) {
-    debug('disconnect');
-  }
-
-  generateRoom() {
-    return uuid.v4();
-  }
-
-  has(room) {
-    return this.games.hasOwnProperty(room);
-  }
-
-  get(room) {
-    if (!games[room]) {
-      games[room] = this._create(room);
-    }
-    return games[room];
-  }
-
-  _create(room) {
-    const game = new Game(room, io);
-
-    game.on('disconnect', function() {
-      if (!game.getNumPlayers()) {
-        this._destroyGame(game.room);
-      }
-    });
-  }
-
-  _destroyGame(room) {
-    delete games[room];
-  }
-}
-
 class Game extends EventEmitter {
   constructor(room) {
+    super();
+
+    this.room = room;
     this.players = [];
     this.status = 'wait';
     this.results = [];
@@ -93,10 +19,25 @@ class Game extends EventEmitter {
 
   addPlayer(socket) {
     this.players.push(socket);
+    this.emit('joined', socket);
   }
 
   removePlayer(socket) {
     this.players.slice(this.players.indexOf(socket), 1);
+    this.emit('left', socket);
+  }
+
+  play(socket) {
+    this.results.push({
+      socket: socket,
+      result: randomInt()
+    });
+
+    if (this.results.length === this.players) {
+      this.emit('end', {
+        result: this.result.slice(0)
+      });
+    }
   }
 
   getPlayers() {
@@ -112,23 +53,144 @@ class Game extends EventEmitter {
   }
 
   start() {
-
+    throw new Error('Not Implemented Yet');
   }
 
-  getNumPlayers() {
+  hasPlayers() {
     return this.players.length;
   }
 
   getInfo() {
     return {
       status: this.status,
-      players: this.players.map((item) => {
-        return item.playerName
-      }),
+      players: this.players.map(this.playerToObj),
       results: this.results
+    };
+  }
+
+  playerToObj(player) {
+    return { id: player.id, name: player.playerName };
+  }
+
+}
+
+
+class Games {
+  constructor(io) {
+    this.io = io;
+    this.games = {};
+    this._listenIO(io);
+  }
+
+  _listenIO(io) {
+    const onConnect = this.onConnect.bind(this);
+    io.sockets.on('connection', onConnect);
+  }
+
+  sendGameInfo(room, socket) {
+    if (!room) {
+      throw new Error('Room is not specified');
+    }
+    if (this.has(room)) {
+      if (socket) {
+        socket.emit('game.info', this.get('room').getInfo());
+      }
+      this.io.in(room).emit('game.info', this.get(room).getInfo());
+    }
+  }
+
+  onConnect(socket) {
+    if (!socket.playerName) {
+      socket.playerName = Moniker.choose();
+    }
+
+    const onRoom = (room, cb) => {
+      if (socket.room) {
+        socket.leave(socket.room);
+        this.get(socket.room).removePlayer(socket);
+      }
+
+      if (room) {
+        socket.room = room;
+        socket.join(room);
+
+        this.get(room).addPlayer(socket);
+      }
+      cb({ id: socket.id });
+    };
+
+    const onPlay = (cb) => {
+      if (!socket.room) return;
+
+      try {
+        cb({ result: this.get(socket.room).play(socket) });
+      } catch (e) {
+        //
+      }
+    };
+
+    socket.on('room', onRoom);
+    socket.on('play', onPlay);
+    socket.on('disconnect', this.onDisconnect);
+  }
+
+  onDisconnect() {
+    debug('disconnect');
+  }
+
+  generateRoom() {
+    return uuid.v4();
+  }
+
+  has(room) {
+    return this.games[room] ? true : false;
+  }
+
+  get(room) {
+    if (!this.games[room]) {
+      this.games[room] = this._create(room);
+    }
+    return this.games[room];
+  }
+
+  _create(room) {
+    const game = new Game(room);
+
+    game.on('joined', socket => {
+      this.io.in(room).emit('players.joined', game.playerToObj(socket));
+      this.sendGameInfo(room);
+    });
+
+    game.on('left', socket => {
+      this.io.in(socket.room).emit('players.left', game.playerToObj(socket));
+
+      if (!game.hasPlayers()) {
+        this._destroyGame(game.room);
+      } else {
+        this.sendGameInfo(room);
+      }
+    });
+
+    game.on('end', function() {
+      this.io.in(game.room).emit('game.end', {});
+      game.reset();
+    });
+
+    game.on('play', function(obj) {
+      obj.socket.emit('result', obj.result);
+    });
+
+    return game;
+  }
+
+  _destroyGame(room) {
+    if (this.games[room]) {
+      this.games[room].removeAllListeners();
+      delete this.games[room];
     }
   }
 }
+
 
 exports.Games = Games;
 exports.Game = Game;

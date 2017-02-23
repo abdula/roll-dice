@@ -17,6 +17,7 @@
   "scripts": {
     "test": "",
     "start": "node server",
+    "dev": "cross-env NODE_ENV=development nodemon server",
     "build": "rimraf dist && cross-env NODE_ENV=production webpack --config ./webpack.production.config.js --progress --profile --colors",
     "eslint": "eslint .",
     "jscs": "jscs ."

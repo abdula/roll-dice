@@ -5,6 +5,8 @@ export class GameController {
     this.socket = socket;
     this.players = [];
     this.log = [];
+    this.status = null;
+
     this.game = {
       status: 'wait'
     };
@@ -26,6 +28,14 @@ export class GameController {
       };
     });
 
+    this.socket.on('game.won', function() {
+
+    });
+
+    this.socket.on('game.end', (result) => {
+
+    });
+
     this.socket.on('players.leave', (player) => {
       this.writeToLog({ player }, 'players.leave');
     });
@@ -34,7 +44,9 @@ export class GameController {
       this.writeToLog({ player }, 'players.join');
     });
 
-    this.socket.emit('room', this.room);
+    this.socket.emit('room', this.room, (result) => {
+      this.socketId = result.id;
+    });
   }
 
   $onDestroy() {
