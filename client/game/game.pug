@@ -2,16 +2,22 @@ div.game
   div.game-result.game-section
     .panel
       .panel-body
-        dice#dice.dice(value="5")
+        div(ng-show="vm.canIPlay.code > 0")
+          dice#dice(dice-value="vm.activeValue", dice-size="big", dice-enabled="true", ng-click="vm.play()")
+        div(ng-show="vm.canIPlay.code < 0 ")  
+          div.alert.alert-warning {{vm.canIPlay.description}} 
+        .game-played
+          div.game-played-entry(ng-repeat="result in vm.game.results")
+            dice(dice-value="result.value", dice-size="small")
+            hr
+
   div.game-players.game-section
     .panel
       .panel-body
-        players
+        div(ng-repeat="player in vm.players")
+          player(model="player")
   div
     .game-log.game-section
       .panel
         .panel-body
-          log
-
-
-
+          log(log="vm.log")

@@ -112,12 +112,59 @@ div {
     background-color: white;
 }
 
-.dice {}
-
-#dice.dice {
-    font-size: 320px;
+#dice {
+    text-align: center;
 }
 
 #dice:hover {
     cursor: pointer;
+}
+
+.dice.dice-big {
+    font-size: 220px;
+    line-height: 1em;
+}
+
+.dice.dice-small {
+    font-size: 50px;
+    line-height: 1em;
+}
+
+.dice.enabled {
+    color: #000
+}
+
+.dice.disabled {
+    color: #ccc
+}
+
+.player {
+    color: red;
+    border-bottom: 1px solid #ccc;
+    font-size: 16px;
+    padding-bottom: 5px;
+    margin-bottom: 10px;
+}
+
+.player.active {
+    color: green;
+}
+
+.alert {
+    padding: 15px;
+    margin-bottom: 20px;
+    border: 1px solid transparent;
+    border-radius: 4px;
+}
+
+.alert-success {
+    color: #3c763d;
+    background-color: #dff0d8;
+    border-color: #d6e9c6;
+}
+
+.alert-warning {
+    color: #8a6d3b;
+    background-color: #fcf8e3;
+    border-color: #faebcc;
 }

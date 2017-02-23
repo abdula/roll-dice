@@ -1,1 +1,10 @@
-| Log
+div(ng-repeat="entry in vm.log" class="log-entry")
+  div(ng-switch="entry.type")
+    span(ng-switch-when="game.joined")
+      | User 
+      strong {{entry.data.player.name}} 
+      | has joined to the game
+    span(ng-switch-when="game.left")
+      | User 
+      strong {{entry.data.player.name}} 
+      | has left the game

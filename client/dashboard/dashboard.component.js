@@ -6,20 +6,20 @@ export default {
 
     this.createGame = function() {
       Game.createGame().then((data) => {
-        let link = $window.location.origin + '/' + data.room;
+        const link = $window.location.origin + '/' + data.room;
 
         SweetAlert.swal({
           html: true,
           title: 'Wellcome',
-          text: "Send this link to your friends to play together<br><br><strong>" + link + "</strong>"
+          text: `Send this link to your friends to play together<br><br><strong>${link}</strong>`
         }, function() {
           $state.go('game', { room: data.room });
         });
       });
-    }
+    };
 
     this.connectGame = function() {
       throw new Error('Not implmeneted yet');
-    }
+    };
   }
 }
