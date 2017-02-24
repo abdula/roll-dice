@@ -5,15 +5,15 @@
   "main": "server/index.js",
   "repository": {
     "type": "git",
-    "url": "https://github.com/christianalfoni/webpack-express-boilerplate.git"
+    "url": "https://github.com/abdula/roll-dice.git"
   },
   "keywords": [],
   "author": "Ivan Maksymenko",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/christianalfoni/webpack-express-boilerplate/issues"
+    "url": "https://github.com/abdula/roll-dice/issues"
   },
-  "homepage": "https://github.com/christianalfoni/webpack-express-boilerplate",
+  "homepage": "https://github.com/abdula/roll-dice",
   "scripts": {
     "test": "",
     "start": "cross-env NODE_ENV=production node server",
