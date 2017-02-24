@@ -42,8 +42,8 @@ module.exports = {
       loader: 'json'
     }, {
       test: /\.css$/,
-      loader: 'style-loader!css-loader'
-        //loader: ExtractTextPlugin.extract('style', 'css?modules&localIdentName=[name]---[local]---[hash:base64:5]!postcss')
+      //loader: 'style-loader!css-loader'
+      loader: ExtractTextPlugin.extract('style-loader', 'css-loader')
     }, {
       test: /\.(jade|pug)$/,
       // pass options to pug as a query ('pug-html-loader?pretty')

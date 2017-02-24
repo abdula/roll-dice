@@ -4,7 +4,7 @@ const path = require('path');
 const express = require('express');
 const isDeveloping = process.env.NODE_ENV !== 'production';
 const socketio = require('socket.io');
-const port = isDeveloping ? 3000 : process.env.PORT;
+const port = process.env.PORT ? process.env.PORT : 3000;
 const app = express();
 const errorHandler = require('errorhandler');
 const register = require('./lib/register');
