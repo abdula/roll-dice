@@ -1,3 +1,14 @@
+INSTALL
+---
+
+```
+yarn
+yarn start
+```
+
+REQUIREMENTS
+---
+
 When at least one more user joins, they can play (There can be "unlimited" amount of players)
 - Players have to wait before joining if dice Rolling is in progress (At least one player pressed role, but not yet all of them.)
 - They roll dice (each clicks a button role)
