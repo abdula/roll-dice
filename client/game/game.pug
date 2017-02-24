@@ -1,4 +1,10 @@
 div.game
+  nav.game-nav
+    .help-invite 
+      | Share this link with your friends to play together
+      span
+        | {{vm.shareLink}}
+    a.btn-invite.btn.btn-small(href="mailto:?subject=Roll%20Dice&body={{vm.shareLink}}") Invite
   div.game-result.game-section
     .panel
       .panel-body
@@ -10,7 +16,6 @@ div.game
           div.game-played-entry(ng-repeat="result in vm.game.results")
             dice(dice-value="result.value", dice-size="small")
             span {{result.player.name}}
-            hr
 
   div.game-players.game-section
     .panel

@@ -300,7 +300,7 @@ class Games {
     });
 
     game.on('reset', () => {
-      this.sendGameInfo(game.room);
+      //this.sendGameInfo(game.room);
     });
 
     game.on('played', (result) => {

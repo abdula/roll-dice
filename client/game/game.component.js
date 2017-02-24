@@ -4,12 +4,13 @@ function randomInt(min, max) {
 
 export class GameController {
 
-  constructor(socket, SweetAlert, $timeout, $interval, $log) {
+  constructor(socket, SweetAlert, $timeout, $interval, $log, $window) {
     'ngInject';
 
     this.$timeout = $timeout;
     this.$interval = $interval;
     this.$log = $log;
+    this.$window = $window;
     this.SweetAlert = SweetAlert;
 
     this.socket = socket;
@@ -110,6 +111,9 @@ export class GameController {
 
     this.socket.on('game.end', () => {
       this.lastValue = null;
+      this.players.forEach(player => {
+        player.active = true;
+      });
     });
 
     this.socket.on('game.won', () => {
@@ -123,6 +127,8 @@ export class GameController {
     this.socket.emit('game.join', this.room, (result) => {
       this.socketId = result.id;
     });
+
+    this.shareLink = this.$window.location.origin + '/' + this.room;
   }
 
   $onDestroy() {
